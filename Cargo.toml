@@ -1,0 +1,12 @@
+[package]
+name = "concurrent-bloom-rs"
+description = "concurrent-safe bloom filter"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "concurrent_bloom"
+
+[dependencies]
+fnv = "1.0.7"
+rand = "0.9.0"

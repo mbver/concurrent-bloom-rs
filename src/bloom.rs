@@ -25,16 +25,16 @@ pub struct Bloom<T: AsRef<[u8]>> {
 
 impl<T: AsRef<[u8]>> Bloom<T> {
   fn new(n_items: usize, false_rate: f64) ->Self{
+    let n_items = cmp::max(1, n_items);
     let m = (-(n_items as f64)*false_rate.ln()/(2f64.ln()*2f64.ln())).ceil();
-    let n_bits = cmp::max(1, m as u64);
-    let k = (2f64.ln())*(n_bits as f64)/(cmp::max(n_items, 1) as f64).round();
+    let k = (2f64.ln())*(m)/(n_items as f64).round();
     let mut r = rng();
     let hash_keys: Vec<u64> = (0..k as usize).map(|_| r.random()).collect();
     Bloom { 
-      n_bits: n_bits, 
+      n_bits: m as u64, 
       n_bits_set: AtomicU64::new(0),
       hash_keys: hash_keys,
-      bits: (0..n_bits).map(|_| AtomicU64::new(0)).collect(),
+      bits: (0..m as u64).map(|_| AtomicU64::new(0)).collect(),
       _marker: PhantomData,
     }
   }

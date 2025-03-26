@@ -26,8 +26,9 @@ pub struct Bloom<T: AsRef<[u8]>> {
 impl<T: AsRef<[u8]>> Bloom<T> {
   fn new(n_items: usize, false_rate: f64) ->Self{
     let n_items = cmp::max(1, n_items);
-    let m = (-(n_items as f64)*false_rate.ln()/(2f64.ln()*2f64.ln())).ceil();
-    let k = (2f64.ln())*(m)/(n_items as f64).round();
+    let mut m = (-(n_items as f64)*false_rate.ln()/(2f64.ln()*2f64.ln())).ceil();
+    m = cmp::max(1, m as u64) as f64;
+    let k = (2f64.ln())*m/(n_items as f64).round();
     let mut r = rng();
     let hash_keys: Vec<u64> = (0..k as usize).map(|_| r.random()).collect();
     Bloom { 

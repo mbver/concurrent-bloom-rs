@@ -162,11 +162,11 @@ mod test {
 
     let false_positives = AtomicU64::new(0);
     items.par_iter().for_each(|item| {
-      if bloom.contains(&item) {
+      if bloom.contains(item) {
         false_positives.fetch_add(1, Ordering::Relaxed);
       }
-      bloom.insert(&item);
-      assert!(bloom.contains(&item));
+      bloom.insert(item);
+      assert!(bloom.contains(item));
     });
     assert!(
       false_positives.load(Ordering::Relaxed) < 200, 
@@ -183,4 +183,3 @@ mod test {
     "false_positive: {}", false_positives.load(Ordering::Relaxed));
   }
 }
-

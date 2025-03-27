@@ -1,8 +1,11 @@
 [package]
 name = "concurrent-bloom-rs"
-description = "concurrent-safe bloom filter"
+description = "thread-safe bloom filter"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/mbver/concurrent-bloom-rs"
+homepage = "https://github.com/mbver/concurrent-bloom-rs"
 
 [lib]
 name = "concurrent_bloom"

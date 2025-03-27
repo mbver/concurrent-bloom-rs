@@ -56,7 +56,7 @@ pub fn new(n_items: usize, false_rate: f64) ->Self{
     Bloom { 
       n_bits: length*64, 
       n_bits_set: AtomicU64::new(0),
-      hash_keys: hash_keys,
+      hash_keys,
       bits: (0..length).map(|_| AtomicU64::new(0)).collect(),
       _marker: PhantomData,
     }
@@ -99,7 +99,7 @@ pub fn new(n_items: usize, false_rate: f64) ->Self{
         return false;
       }
     }
-    return true;
+    true
   }
   // clear all the bits
   pub fn reset(&self) {

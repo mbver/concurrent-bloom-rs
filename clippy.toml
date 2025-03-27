@@ -1,2 +1,0 @@
-[workspace.metadata.clippy]
-exclude-files = ["benches/*.rs"]

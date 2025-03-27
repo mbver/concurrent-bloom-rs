@@ -1,12 +1,14 @@
 use {
+  core::fmt, 
+  fnv::FnvHasher, 
+  rand::{rng, Rng}, 
+  serde::{Deserialize, Serialize}, 
   std::{
     cmp, 
     hash::Hasher, 
     marker::PhantomData, 
     sync::atomic::{AtomicU64, Ordering},
-  },
-  fnv::FnvHasher,
-  rand::{rng, Rng}
+  }
 };
 
 fn hash<T: AsRef<[u8]>>(input: T, h_key: u64) -> u64 {
@@ -15,6 +17,7 @@ fn hash<T: AsRef<[u8]>>(input: T, h_key: u64) -> u64 {
   hasher.finish()
 }
 
+#[derive(Serialize, Deserialize, Default)]
 pub struct Bloom<T: AsRef<[u8]>> {
   n_bits: u64,
   n_bits_set: AtomicU64,
@@ -23,19 +26,38 @@ pub struct Bloom<T: AsRef<[u8]>> {
   _marker: PhantomData<T>
 }
 
+impl<T: AsRef<[u8]>> fmt::Debug for Bloom<T> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "Bloom {{ num_hash_keys: {}, num_bits: {}, num_bit_sets: {}, bits: ",
+      self.hash_keys.len(),
+      self.n_bits,
+      self.num_bits_set(),
+    )?;
+    let first = self.bits[0].load(Ordering::Relaxed);
+    let first_10_bits = first.reverse_bits() >> 54; // Reverse only 10 bits
+    write!(f, "{:010b}..", first_10_bits)?;
+    write!(f, " }}")
+  }
+}
+
 impl<T: AsRef<[u8]>> Bloom<T> {
-  fn new(n_items: usize, false_rate: f64) ->Self{
+/// Creates a thread-safe Bloom filter with an optimal bit size and number of hash functions  
+/// based on the expected number of items and the desired false positive rate.
+pub fn new(n_items: usize, false_rate: f64) ->Self{
     let n_items = cmp::max(1, n_items);
     let mut m = (-(n_items as f64)*false_rate.ln()/(2f64.ln()*2f64.ln())).ceil();
-    m = cmp::max(1, m as u64) as f64;
+    m = cmp::max(1, m as u64) as f64; // make sure m >= 1
     let k = (2f64.ln())*m/(n_items as f64).round();
+    let length = (m as u64 + 63)/64; // calculate the length of the AtomicU64 vector
     let mut r = rng();
     let hash_keys: Vec<u64> = (0..k as usize).map(|_| r.random()).collect();
     Bloom { 
-      n_bits: m as u64, 
+      n_bits: length*64, 
       n_bits_set: AtomicU64::new(0),
       hash_keys: hash_keys,
-      bits: (0..m as u64).map(|_| AtomicU64::new(0)).collect(),
+      bits: (0..length).map(|_| AtomicU64::new(0)).collect(),
       _marker: PhantomData,
     }
   }
@@ -88,5 +110,24 @@ impl<T: AsRef<[u8]>> Bloom<T> {
   // get the number of bits set
   pub fn num_bits_set(&self) ->u64 {
     self.n_bits_set.load(Ordering::Relaxed)
+  }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Bloom;
+  #[test]
+  fn test_bloom_constructor() {
+    let bloom: Bloom<String> = Bloom::new(0, 0.1);
+    assert_eq!(bloom.n_bits, 64);
+    assert_eq!(bloom.hash_keys.len(), 3);
+
+    let bloom: Bloom<String> = Bloom::new(10, 0.1);
+    assert_eq!(bloom.n_bits, 64);
+    assert_eq!(bloom.hash_keys.len(), 3);
+
+    let bloom: Bloom<String> = Bloom::new(100, 0.1);
+    assert_eq!(bloom.n_bits, 512);
+    assert_eq!(bloom.hash_keys.len(), 3);
   }
 }

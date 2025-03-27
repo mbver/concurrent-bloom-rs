@@ -168,7 +168,9 @@ mod test {
       bloom.insert(&item);
       assert!(bloom.contains(&item));
     });
-    assert!(false_positives.load(Ordering::Relaxed) < 200);
+    assert!(
+      false_positives.load(Ordering::Relaxed) < 200, 
+      "false_positive: {}", false_positives.load(Ordering::Relaxed));
     // test false_positives more intensively
     false_positives.store(0, Ordering::Relaxed);
     (0..10000).for_each(|_| {
@@ -177,6 +179,8 @@ mod test {
         false_positives.fetch_add(1, Ordering::Relaxed);
       }
     });
-    assert!(false_positives.load(Ordering::Relaxed) < 2000);
+    assert!(false_positives.load(Ordering::Relaxed) < 2000, 
+    "false_positive: {}", false_positives.load(Ordering::Relaxed));
   }
 }
+

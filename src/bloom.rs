@@ -115,7 +115,12 @@ pub fn new(n_items: usize, false_rate: f64) ->Self{
 
 #[cfg(test)]
 mod test {
-    use super::Bloom;
+    use {
+      super::Bloom, 
+      rand::{rng, rngs::ThreadRng, Rng}, 
+      rayon::prelude::*, 
+      std::sync::atomic::{AtomicU64, Ordering},
+    };
   #[test]
   fn test_bloom_constructor() {
     let bloom: Bloom<String> = Bloom::new(0, 0.1);
@@ -129,5 +134,49 @@ mod test {
     let bloom: Bloom<String> = Bloom::new(100, 0.1);
     assert_eq!(bloom.n_bits, 512);
     assert_eq!(bloom.hash_keys.len(), 3);
+  }
+  #[test]
+  fn test_bloom_hash_keys_randomness() {
+    let mut bloom1: Bloom<String> = Bloom::new(10, 0.1);
+    let mut bloom2: Bloom<String> = Bloom::new(10, 0.1);
+    assert_eq!(bloom1.hash_keys.len(), bloom2.hash_keys.len());
+    bloom1.hash_keys.sort_unstable();
+    bloom2.hash_keys.sort_unstable();
+    assert_ne!(bloom1.hash_keys, bloom2.hash_keys);
+  }
+  const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                         abcdefghijklmnopqrstuvwxyz\
+                         0123456789";
+  fn random_string(rng: &mut ThreadRng) -> String {
+    let length = rng.random_range(1..64);
+    (0..length).map(|_| CHARSET[rng.random_range(0..CHARSET.len())] as char).collect()
+  }
+  #[test]
+  fn test_bloom_insert_contains() {
+    let bloom: Bloom<String> = Bloom::new(2100, 0.1);
+    println!("{:?}", bloom);
+    assert_eq!(10112, bloom.n_bits);
+    assert_eq!(3, bloom.hash_keys.len());
+    let mut r = rng();
+    let items: Vec<String> = (0..2000).map(|_| random_string(&mut r)).collect();
+
+    let false_positives = AtomicU64::new(0);
+    items.par_iter().for_each(|item| {
+      if bloom.contains(&item) {
+        false_positives.fetch_add(1, Ordering::Relaxed);
+      }
+      bloom.insert(&item);
+      assert!(bloom.contains(&item));
+    });
+    assert!(false_positives.load(Ordering::Relaxed) < 200);
+    // test false_positives more intensively
+    false_positives.store(0, Ordering::Relaxed);
+    (0..10000).for_each(|_| {
+      let item = random_string(&mut r);
+      if bloom.contains(&item) {
+        false_positives.fetch_add(1, Ordering::Relaxed);
+      }
+    });
+    assert!(false_positives.load(Ordering::Relaxed) < 2000);
   }
 }

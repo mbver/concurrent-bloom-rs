@@ -5,6 +5,11 @@ on:
     branches:
       - "master"
   pull_request:
+      types:
+        - opened
+        - reopened
+        - synchronize
+        - ready_for_review
   workflow_dispatch:
 
 concurrency:
@@ -44,4 +49,4 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test --all
+        run: cargo test --locked --all

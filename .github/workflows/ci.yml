@@ -38,6 +38,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -51,25 +52,9 @@ jobs:
       - name: Run tests
         run: cargo test --locked --all
 
-  benchmarks:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-
-      - name: Set up Rust (Nightly)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: nightly
-
-      - name: Cache cargo dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Run Benchmarks
-        run: cargo bench --locked
-      
-      - name: Worker info
+      - name: Benchmark
+        if: github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
         run: |-
+          cargo bench --locked
           cat /proc/cpuinfo
           cat /proc/meminfo

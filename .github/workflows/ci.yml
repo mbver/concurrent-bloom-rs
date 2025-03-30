@@ -18,8 +18,11 @@ concurrency:
 
 jobs:
   lint:
+    strategy: &os_strategy  # Define the strategy
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     name: Lint (cargo clippy)
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
@@ -37,7 +40,9 @@ jobs:
 
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    strategy: *os_strategy 
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -52,8 +57,11 @@ jobs:
         run: cargo test --locked --all
 
   benchmarks:
-    runs-on: ubuntu-latest
+    name: benchmarks
+    strategy: *os_strategy 
+    runs-on: ${{ matrix.os }}
     if: github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332

@@ -27,7 +27,7 @@ fn bench_bloom(b: &mut Bencher) {
     items.par_iter().for_each(|item| {
       bloom.insert(item);
       if !bloom.contains(item) {
-        failed.store(false, Ordering::Relaxed);
+        failed.store(true, Ordering::Relaxed);
       }
     });
   });
